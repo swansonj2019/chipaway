@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabase';
 import { goalsDB, entriesDB } from './db';
 import { uid, todayStr } from './utils';
@@ -45,19 +45,48 @@ const NAV = [
 function ProfileSheet({ user, onClose, onSignOut }) {
   const initials = user.email?.slice(0, 2).toUpperCase() || 'CA';
   const memberSince = new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const sheetRef = useRef(null);
+  const dragStartY = useRef(null);
+  const dragDelta = useRef(0);
+
+  function onTouchStart(e) {
+    dragStartY.current = e.touches[0].clientY;
+    dragDelta.current = 0;
+    if (sheetRef.current) sheetRef.current.style.transition = 'none';
+  }
+  function onTouchMove(e) {
+    const delta = e.touches[0].clientY - dragStartY.current;
+    if (delta < 0) return;
+    dragDelta.current = delta;
+    if (sheetRef.current) sheetRef.current.style.transform = `translateY(${delta}px)`;
+  }
+  function onTouchEnd() {
+    if (sheetRef.current) sheetRef.current.style.transition = 'transform 0.25s ease';
+    if (dragDelta.current > 100) {
+      if (sheetRef.current) sheetRef.current.style.transform = 'translateY(100%)';
+      setTimeout(onClose, 220);
+    } else {
+      if (sheetRef.current) sheetRef.current.style.transform = 'translateY(0)';
+    }
+  }
 
   return createPortal(
     <div
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
-      <div style={{
-        background: 'var(--surface)', borderRadius: '24px 24px 0 0',
-        padding: '20px 20px',
-        paddingBottom: 'max(32px, calc(env(safe-area-inset-bottom) + 24px))',
-        width: '100%', maxWidth: 430,
-        animation: 'slideUp 0.25s ease',
-      }}>
+      <div
+        ref={sheetRef}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{
+          background: 'var(--surface)', borderRadius: '24px 24px 0 0',
+          padding: '20px 20px',
+          paddingBottom: 'max(32px, calc(env(safe-area-inset-bottom) + 24px))',
+          width: '100%', maxWidth: 430,
+          animation: 'slideUp 0.25s ease',
+        }}>
         <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--bg3)', margin: '0 auto 20px' }} />
 
         {/* User info */}

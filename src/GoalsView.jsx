@@ -1,8 +1,14 @@
-import { getAllTimeTotal, getStreak, todayStr, getTodayTotal } from './utils';
+import { getAllTimeTotal, getStreak, getTodayTotal } from './utils';
 
 export default function GoalsView({ goals, entries, onAdd, onDelete }) {
   return (
-    <div className="scroll-content" style={{ padding: '0 16px' }}>
+    <div style={{
+      flex: 1,
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      padding: '0 16px',
+      paddingBottom: 'max(120px, calc(env(safe-area-inset-bottom) + 110px))',
+    }}>
       <div className="hint-text" style={{ marginBottom: 16 }}>
         Each goal has its own unit and target. Mix and match however you like.
       </div>
@@ -53,9 +59,7 @@ export default function GoalsView({ goals, entries, onAdd, onDelete }) {
             <div style={{ display: 'flex', gap: 8 }}>
               <div style={{ flex: 1, background: 'var(--bg2)', borderRadius: 10, padding: '8px 12px', textAlign: 'center' }}>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 2 }}>All time</div>
-                <div style={{ fontSize: 16, fontWeight: 500, fontFamily: 'var(--mono)', color: 'var(--text)' }}>
-                  {allTime.toLocaleString()}
-                </div>
+                <div style={{ fontSize: 16, fontWeight: 500, fontFamily: 'var(--mono)', color: 'var(--text)' }}>{allTime.toLocaleString()}</div>
                 <div style={{ fontSize: 10, color: 'var(--text3)' }}>{goal.unit}</div>
               </div>
               <div style={{ flex: 1, background: 'var(--bg2)', borderRadius: 10, padding: '8px 12px', textAlign: 'center' }}>
@@ -73,7 +77,11 @@ export default function GoalsView({ goals, entries, onAdd, onDelete }) {
         );
       })}
 
-      <button className="btn-primary" style={{ marginTop: 4 }} onClick={onAdd}>
+      <button
+        className="btn-primary"
+        style={{ marginTop: 4, marginBottom: 8 }}
+        onClick={onAdd}
+      >
         + Add new goal
       </button>
     </div>
