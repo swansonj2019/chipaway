@@ -63,7 +63,7 @@ h3 { font-size: 15px; font-weight: 500; }
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding-bottom: calc(80px + var(--safe-bottom));
+  padding-bottom: max(100px, calc(env(safe-area-inset-bottom) + 90px));
 }
 .scroll-content::-webkit-scrollbar { display: none; }
 
