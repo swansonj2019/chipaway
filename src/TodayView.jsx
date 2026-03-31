@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import LogSheet from './LogSheet';
+import { TimerButton } from './Timer';
 import { getTodayTotal, formatTime, todayStr, getStreak } from './utils';
 
 export default function TodayView({ goals, entries, onLog, onAddGoal }) {
   const [activeSheet, setActiveSheet] = useState(null);
-  const [slippedGoal, setSlippedGoal] = useState(null);
   const today = todayStr();
 
   const activeGoals = goals.filter(g => g.type !== 'avoidance');
@@ -28,11 +28,10 @@ export default function TodayView({ goals, entries, onLog, onAddGoal }) {
   const streakVal = getBestStreak();
 
   const nudgeGoal = activeGoals.find(g => {
-    const { total, done } = getProgress(g);
-    return !done && total > 0;
+    const { done } = getProgress(g);
+    return !done && getTodayTotal(entries, g.id) > 0;
   }) || activeGoals.find(g => !getProgress(g).done);
 
-  // 3-goal soft limit
   const showSoftLimit = activeGoals.length === 3;
   const showWarning = activeGoals.length >= 4;
 
@@ -66,20 +65,21 @@ export default function TodayView({ goals, entries, onLog, onAddGoal }) {
         </div>
       ) : (
         <>
-          {/* Active goals */}
           {activeGoals.map(goal => {
             const { total, pct, done } = getProgress(goal);
             const remaining = goal.target - total;
+            const isDuration = goal.type === 'duration';
+
             return (
               <div key={goal.id} style={{
                 background: 'var(--surface)',
-                border: `1.5px solid ${done ? '#22c55e44' : goal.color + '33'}`,
+                border: `0.5px solid ${done ? '#22c55e44' : 'var(--border)'}`,
                 borderRadius: 20,
                 padding: 16,
                 marginBottom: 12,
                 borderLeft: `4px solid ${done ? '#22c55e' : goal.color}`,
               }}>
-                <div className="goal-header">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 12, background: goal.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
                       {goal.icon}
@@ -99,7 +99,7 @@ export default function TodayView({ goals, entries, onLog, onAddGoal }) {
                   </div>
                 </div>
 
-                <div style={{ height: 6, borderRadius: 3, background: 'var(--bg2)', marginBottom: 10, overflow: 'hidden' }}>
+                <div style={{ height: 6, borderRadius: 3, background: 'var(--bg2)', marginBottom: 12, overflow: 'hidden' }}>
                   <div style={{ height: '100%', borderRadius: 3, width: pct + '%', background: done ? '#22c55e' : goal.color, transition: 'width 0.5s ease' }} />
                 </div>
 
@@ -109,18 +109,24 @@ export default function TodayView({ goals, entries, onLog, onAddGoal }) {
                   ) : (
                     <span style={{ fontSize: 12, color: 'var(--text3)' }}>{remaining} {goal.unit} to go</span>
                   )}
-                  <button
-                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 14px', borderRadius: 10, background: done ? 'var(--bg2)' : goal.color, color: done ? 'var(--text2)' : '#fff', border: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--sans)' }}
-                    onClick={() => setActiveSheet(goal)}
-                  >
-                    + Log {goal.type === 'duration' ? 'time' : 'reps'}
-                  </button>
+
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    {isDuration && (
+                      <TimerButton goal={goal} onLog={(mins) => onLog(goal, mins)} />
+                    )}
+                    <button
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, background: isDuration ? 'var(--bg2)' : goal.color, color: isDuration ? 'var(--text2)' : '#fff', border: isDuration ? '0.5px solid var(--border)' : 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--sans)' }}
+                      onClick={() => setActiveSheet(goal)}
+                    >
+                      + {isDuration ? 'Manual' : 'Log'}
+                    </button>
+                  </div>
                 </div>
               </div>
             );
           })}
 
-          {/* Avoidance streaks — separate section */}
+          {/* Avoidance streaks */}
           {avoidanceGoals.length > 0 && (
             <>
               <div className="section-label" style={{ marginTop: 8 }}>Streaks</div>
@@ -130,12 +136,8 @@ export default function TodayView({ goals, entries, onLog, onAddGoal }) {
                   <div key={goal.id} style={{
                     background: 'var(--surface)',
                     border: '0.5px solid var(--border)',
-                    borderRadius: 16,
-                    padding: '14px 16px',
-                    marginBottom: 10,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
+                    borderRadius: 16, padding: '14px 16px', marginBottom: 10,
+                    display: 'flex', alignItems: 'center', gap: 12,
                   }}>
                     <div style={{ width: 40, height: 40, borderRadius: 12, background: goal.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
                       {goal.icon}
@@ -156,36 +158,26 @@ export default function TodayView({ goals, entries, onLog, onAddGoal }) {
             </>
           )}
 
-          {/* 3-goal soft nudge */}
+          {/* Soft limit nudges */}
           {showSoftLimit && (
             <div style={{ background: '#fffbeb', border: '0.5px solid #fde68a', borderRadius: 12, padding: '10px 14px', marginBottom: 12, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
               <span style={{ fontSize: 16, flexShrink: 0 }}>💡</span>
-              <div style={{ fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
-                Most people find 3 goals the sweet spot for real consistency. You're in a good place — but you can always add more.
-              </div>
+              <div style={{ fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>Most people find 3 goals the sweet spot. You're in a good place — but you can always add more.</div>
             </div>
           )}
-
           {showWarning && (
             <div style={{ background: '#fff7ed', border: '0.5px solid #fed7aa', borderRadius: 12, padding: '10px 14px', marginBottom: 12, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
               <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
-              <div style={{ fontSize: 12, color: '#9a3412', lineHeight: 1.5 }}>
-                You have {activeGoals.length} active goals. The more you add, the harder it gets to chip away at all of them consistently.
-              </div>
+              <div style={{ fontSize: 12, color: '#9a3412', lineHeight: 1.5 }}>You have {activeGoals.length} active goals. The more you add, the harder it gets to stay consistent on all of them.</div>
             </div>
           )}
 
-          {/* Add goal button */}
-          <button
-            onClick={onAddGoal}
-            style={{ width: '100%', padding: '13px', borderRadius: 14, border: '1.5px dashed var(--border2)', background: 'none', fontSize: 13, fontWeight: 500, color: 'var(--text3)', cursor: 'pointer', fontFamily: 'var(--sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 16 }}
-          >
+          <button onClick={onAddGoal} style={{ width: '100%', padding: '13px', borderRadius: 14, border: '1.5px dashed var(--border2)', background: 'none', fontSize: 13, fontWeight: 500, color: 'var(--text3)', cursor: 'pointer', fontFamily: 'var(--sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 16 }}>
             + Add a goal
           </button>
         </>
       )}
 
-      {/* Today's log */}
       {todayEntries.length > 0 && (
         <>
           <div className="section-label">Today's log</div>
